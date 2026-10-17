@@ -1,0 +1,70 @@
+name: iOS Release IPA
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-15
+    env:
+      BUILD_TYPE: Release
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      # Prefer Xcode 16.x if the runner has several; otherwise keep the default.
+      - name: Select Xcode
+        run: |
+          X=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -n 1)
+          if [ -n "$X" ]; then sudo xcode-select -switch "$X"; fi
+          xcodebuild -version
+
+      # ldid is required: the CMake IPA step signs the binary with entitlements.
+      - name: Install build tools
+        run: |
+          brew update || true
+          brew install ldid cmake
+
+      - name: Build OpenMP.xcframework
+        run: ./shell/apple/emulator-ios/OpenMP/build_ios_openmp.sh --disableSimulator
+
+      # Fresh build dir on purpose: the repo's committed build/ folder is a
+      # generated Xcode project with absolute /Users/... paths.
+      - name: Configure
+        run: |
+          cmake -B build-ios \
+            -G Xcode \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+
+      - name: Build Release (also produces Flycast.ipa)
+        run: |
+          cmake --build build-ios --config $BUILD_TYPE 2>&1 | tee build.log | tail -n 150
+          exit ${PIPESTATUS[0]}
+        shell: bash
+
+      - name: Locate IPA
+        run: |
+          IPA=$(find build-ios -name "Flycast.ipa" | head -n 1)
+          if [ -z "$IPA" ]; then echo "Flycast.ipa not found"; find build-ios -name "*.app" -o -name "*.ipa"; exit 1; fi
+          mkdir -p artifact
+          cp "$IPA" artifact/Flycast-Release.ipa
+          ls -lh artifact
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Flycast-iOS-Release
+          path: artifact/Flycast-Release.ipa
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
