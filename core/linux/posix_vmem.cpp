@@ -327,6 +327,11 @@ static bool init_txm_jit_pool()
         );
     }
 
+    if (true) {
+        __asm__ volatile ("mov x16, #0\n" "brk #0xf00d" ::: "x16", "memory");
+    }
+
+
     vm_address_t rw_region = 0;
     vm_address_t target = reinterpret_cast<vm_address_t>(rx_ptr);
     vm_prot_t cur_protection = 0;
