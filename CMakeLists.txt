@@ -1721,7 +1721,8 @@ if(NOT LIBRETRO)
 					lwmem_sys_apple.c)
 			target_include_directories(${PROJECT_NAME} PRIVATE
 					${CMAKE_CURRENT_SOURCE_DIR}
-					${CMAKE_CURRENT_SOURCE_DIR}/lwmem)
+					${CMAKE_CURRENT_SOURCE_DIR}/lwmem
+					${CMAKE_CURRENT_SOURCE_DIR}/lwmem/src/include)
 
 			target_sources(${PROJECT_NAME} PRIVATE
 					shell/apple/common/http_client.mm
