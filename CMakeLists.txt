@@ -1714,6 +1714,14 @@ if(NOT LIBRETRO)
 			set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_SWIFT_VERSION "5.0")
 			add_subdirectory(shell/apple/emulator-ios/AltKit)
 			target_link_libraries(${PROJECT_NAME} PRIVATE AltKit)
+						target_sources(${PROJECT_NAME} PRIVATE
+					ios_jit_manager.h
+					ios_jit_manager.m
+					lwmem.c
+					lwmem_sys_apple.c)
+			target_include_directories(${PROJECT_NAME} PRIVATE
+					${CMAKE_CURRENT_SOURCE_DIR}
+					${CMAKE_CURRENT_SOURCE_DIR}/lwmem)
 
 			target_sources(${PROJECT_NAME} PRIVATE
 					shell/apple/common/http_client.mm
