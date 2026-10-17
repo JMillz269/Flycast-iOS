@@ -251,7 +251,7 @@ void create_mappings(const Mapping *vmem_maps, unsigned nummaps) {
 } // namespace virtmem
 
 #ifdef TARGET_IPHONE
-#include "/Users/chachillie/flycast/ios_jit_manager.h"
+#include "ios_jit_manager.h"
 #include <mach/mach.h>
 
 extern "C" {
