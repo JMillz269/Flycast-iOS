@@ -258,7 +258,7 @@ extern "C" {
 #include "lwmem.h"
 }
 
-constexpr size_t TXM_EXECUTABLE_REGION_SIZE = 536870912;
+constexpr size_t TXM_EXECUTABLE_REGION_SIZE = 64 * 1024 * 1024;   // Flycast needs ~15 MB and this sets 64 MB. Should get better chances of hitting a low address on TXM pool
 
 static bool init_txm_jit_pool();  // Forward declaration
 #endif
@@ -303,35 +303,23 @@ static bool init_txm_jit_pool()
     
     NOTICE_LOG(VMEM, "Initializing TXM JIT pool (%zu MB)...", size / (1024 * 1024));
     
-    // The debugger's "prepare region" step only handles addresses below 2^36
-    // (9 hex digits), so ask for the RX region low and verify where it landed.
-    constexpr uint64_t JIT_ADDR_LIMIT = 0x1000000000ULL;
-    u8* rx_ptr = static_cast<u8*>(MAP_FAILED);
-    for (uint64_t hint = 0x400000000ULL; hint + size <= JIT_ADDR_LIMIT; hint += 0x40000000ULL)
-    {
-        void* p = mmap(reinterpret_cast<void*>(hint), size, PROT_READ | PROT_EXEC,
-                       MAP_ANON | MAP_PRIVATE, -1, 0);
-        if (p == MAP_FAILED)
-            break;
-        if ((uint64_t)p + size <= JIT_ADDR_LIMIT)
-        {
-            rx_ptr = static_cast<u8*>(p);
-            break;
-        }
-        munmap(p, size);    // kernel ignored the hint, try the next one
-    }
-    if (rx_ptr == MAP_FAILED)
-    {
-        WARN_LOG(VMEM, "TXM: could not place RX region below 2^36, using any address");
-        rx_ptr = static_cast<u8*>(mmap(nullptr, size, PROT_READ | PROT_EXEC,
+    g_txm_pool.uses_txm = true;
+    const size_t size = TXM_EXECUTABLE_REGION_SIZE;
+
+    NOTICE_LOG(VMEM, "Initializing TXM JIT pool (%zu MB)...", size / (1024 * 1024));
+
+    u8* rx_ptr = static_cast<u8*>(mmap(nullptr, size, PROT_READ | PROT_EXEC,
                                        MAP_ANON | MAP_PRIVATE, -1, 0));
-    }
     if (rx_ptr == MAP_FAILED)
     {
         ERROR_LOG(VMEM, "TXM: Failed to allocate RX region: %s", strerror(errno));
         g_txm_pool.uses_txm = false;
         return false;
     }
+    if ((uint64_t)rx_ptr + size > 0x1000000000ULL)
+        WARN_LOG(VMEM, "TXM: RX region %p is above 2^36, debugger can't prepare it", rx_ptr);
+
+    NOTICE_LOG(VMEM, "Registering with TXM via brk #0xf00d (universal.js)...");
     
     NOTICE_LOG(VMEM, "Registering with TXM via brk #0xf00d (universal.js)...");
 
