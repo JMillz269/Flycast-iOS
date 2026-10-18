@@ -4,6 +4,11 @@
 #import <Foundation/Foundation.h>
 #include "ios_jit_manager.h"
 
+#include <sys/utsname.h>
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
+
 #if TARGET_OS_IPHONE && !TARGET_OS_SIMULATOR
 
 #include <unistd.h>
@@ -23,50 +28,50 @@ int csops(pid_t pid, unsigned int ops, void* useraddr, size_t usersize);
 }
 #endif
 
-static NSString* filePathAtPath(NSString* path, NSUInteger length) {
-    NSError *error = nil;
-    NSArray<NSString *> *items = [[NSFileManager defaultManager]
-        contentsOfDirectoryAtPath:path error:&error];
-    if (!items) {
-        return nil;
+// Port of StosDebug's ProcessInfo.detectedTXM (TXM_Checks.swift).
+// Uses the hardware model, so it needs no filesystem access and works in a sandbox / LiveContainer.
+static bool ios_hardware_has_txm(void) {
+    struct utsname systemInfo;
+    if (uname(&systemInfo) != 0) {
+        return false;
     }
-    
-    for (NSString *entry in items) {
-        if (entry.length == length) {
-            return [path stringByAppendingPathComponent:entry];
+    const char* hw = systemInfo.machine;
+
+    // iOS 27+: every device except these two iPads has TXM
+    if ([[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:(NSOperatingSystemVersion){27, 0, 0}]) {
+        return strcmp(hw, "iPad8,11") != 0 && strcmp(hw, "iPad8,12") != 0;
+    }
+
+    // iOS 26: decide by hardware generation
+    if ([[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:(NSOperatingSystemVersion){26, 0, 0}]) {
+        bool isPad = strncmp(hw, "iPad", 4) == 0;
+        bool isPhone = strncmp(hw, "iPhone", 6) == 0;
+        if (!isPad && !isPhone) {
+            return false;
         }
+
+        int major = 0, minor = 0;
+        if (sscanf(hw + (isPad ? 4 : 6), "%d,%d", &major, &minor) != 2) {
+            return false;
+        }
+
+        // Same math as StosDebug: major + minor / 10^(digits in minor)
+        int digits = 1;
+        for (int m = minor; m >= 10; m /= 10) digits++;
+        double version = major + (double)minor / pow(10.0, digits);
+
+        return isPad ? (version >= 14.5) : (version >= 14.2);
     }
-    return nil;
+
+    return false;
 }
 
 bool ios_device_has_txm(void) {
-    if (@available(iOS 26, *)) {
-        // Primary path: /System/Volumes/Preboot/<36>/boot/<96>/usr/.../Ap,TrustedExecutionMonitor.img4
-        NSString* bootUUID = filePathAtPath(@"/System/Volumes/Preboot", 36);
-        if (bootUUID) {
-            NSString* bootDir = [bootUUID stringByAppendingPathComponent:@"boot"];
-            NSString* ninetySixCharPath = filePathAtPath(bootDir, 96);
-            if (ninetySixCharPath) {
-                NSString* img = [ninetySixCharPath stringByAppendingPathComponent:
-                    @"usr/standalone/firmware/FUD/Ap,TrustedExecutionMonitor.img4"];
-                if (access(img.fileSystemRepresentation, F_OK) == 0) {
-                    return true;
-                }
-            }
-        }
-        
-        // Fallback path: /private/preboot/<96>/usr/.../Ap,TrustedExecutionMonitor.img4
-        NSString* fallback = filePathAtPath(@"/private/preboot", 96);
-        if (fallback) {
-            NSString* img = [fallback stringByAppendingPathComponent:
-                @"usr/standalone/firmware/FUD/Ap,TrustedExecutionMonitor.img4"];
-            if (access(img.fileSystemRepresentation, F_OK) == 0) {
-                return true;
-            }
-        }
+    // Optional manual override, same idea as StosDebug's "forceTXM"
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:@"forceTXM"]) {
+        return true;
     }
-    
-    return false;
+    return ios_hardware_has_txm();
 }
 
 bool ios_process_is_debugged(void) {

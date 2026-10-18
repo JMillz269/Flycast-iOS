@@ -312,18 +312,26 @@ static bool init_txm_jit_pool()
         return false;
     }
     
-    INFO_LOG(VMEM, "Registering with TXM via brk #0x69...");
+    INFO_LOG(VMEM, "Registering with TXM via brk #0xf00d (universal.js)...");
 
     if (has_txm) {
+        // universal.js protocol: x16 = command (1 = prepare JIT region),
+        // x0 = region address, x1 = length
         __asm__ volatile (
             "mov x0, %0\n"
             "mov x1, %1\n"
-            "brk #0x69"
+            "mov x16, #1\n"
+            "brk #0xf00d"
             :: "r" (rx_ptr), "r" (size)
-            : "x0", "x1", "memory"
+            : "x0", "x1", "x16", "memory"
         );
     }
-    
+
+    if (has_txm) {
+        __asm__ volatile ("mov x16, #0\n" "brk #0xf00d" ::: "x16", "memory");
+    }
+
+
     vm_address_t rw_region = 0;
     vm_address_t target = reinterpret_cast<vm_address_t>(rx_ptr);
     vm_prot_t cur_protection = 0;

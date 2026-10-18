@@ -67,6 +67,7 @@
 {
 	[self resetAnalog];
 	[hideTimer invalidate];
+	vgamepad::hide();
 	[self.view removeFromSuperview];
 }
 
