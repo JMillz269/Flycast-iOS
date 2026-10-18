@@ -18,8 +18,52 @@
 */
 #import <Foundation/Foundation.h>
 #include "oslib/http_client.h"
+#include <atomic>
+
+static std::atomic<int> cancelGeneration {0};
+
+static bool sendRequest(NSURLRequest *request, NSData **outData, NSHTTPURLResponse **outResponse)
+{
+	__block NSData *data = nil;
+	__block NSURLResponse *response = nil;
+	__block NSError *error = nil;
+	dispatch_semaphore_t done = dispatch_semaphore_create(0);
+	const int generation = cancelGeneration.load();
+
+	NSURLSessionConfiguration *config = [NSURLSessionConfiguration ephemeralSessionConfiguration];
+	config.timeoutIntervalForRequest = 10;
+	NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
+	NSURLSessionDataTask *task = [session dataTaskWithRequest:request
+	        completionHandler:^(NSData *d, NSURLResponse *r, NSError *e) {
+		data = d;
+		response = r;
+		error = e;
+		dispatch_semaphore_signal(done);
+	}];
+	[task resume];
+
+	// Wait in short slices so cancelPending() can interrupt us
+	while (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, 100 * NSEC_PER_MSEC)) != 0)
+	{
+		if (cancelGeneration.load() != generation)
+			[task cancel];
+	}
+	[session finishTasksAndInvalidate];
+
+	if (error != nil || ![response isKindOfClass:[NSHTTPURLResponse class]]) {
+		NSLog(@"Flycast HTTP request to %@ failed: %@", request.URL, error);
+		return false;
+	}
+	*outData = data;
+	*outResponse = (NSHTTPURLResponse *)response;
+	return true;
+}
 
 namespace http {
+
+void cancelPending() {
+	cancelGeneration++;
+}
 
 int get(const std::string& url, std::vector<u8>& content, std::string& contentType)
 {
@@ -30,15 +74,12 @@ int get(const std::string& url, std::vector<u8>& content, std::string& contentTy
 	NSMutableURLRequest *urlRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:nsurl]];
 	[urlRequest setValue:userAgent forHTTPHeaderField:@"User-Agent"];
 	[urlRequest setTimeoutInterval:10.0];
-	NSURLResponse *response = nil;
-	NSError *error = nil;
-	NSData *data = [NSURLConnection sendSynchronousRequest:urlRequest
-                                         returningResponse:&response
-                                                     error:&error];
-	if (error != nil)
+
+	NSData *data = nil;
+	NSHTTPURLResponse *httpResponse = nil;
+	if (!sendRequest(urlRequest, &data, &httpResponse))
 		return 500;
 
-	NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response; 
 	if (httpResponse.MIMEType != nil)
 		contentType = std::string([httpResponse.MIMEType UTF8String]);
 	else
@@ -72,15 +113,10 @@ int post(const std::string& url, const char *payload, const char *contentType, s
     [request setValue:nscontentType forHTTPHeaderField:@"Content-Type"];
 	[request setValue:userAgent forHTTPHeaderField:@"User-Agent"];
     
-	NSURLResponse *response = nil;
-	NSError *error = nil;
-	NSData *data = [NSURLConnection sendSynchronousRequest:request
-                          returningResponse:&response
-                                      error:&error];
-	if (error != nil)
+	NSData *data = nil;
+	NSHTTPURLResponse *httpResponse = nil;
+	if (!sendRequest(request, &data, &httpResponse))
 		return 500;
-
-	NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response; 
 		
 	reply.clear();
 	reply.insert(reply.begin(), (const u8 *)[data bytes], (const u8 *)[data bytes] + [data length]);
@@ -140,15 +176,11 @@ int post(const std::string& url, const std::vector<PostField>& fields)
 	NSString *postLength = [NSString stringWithFormat:@"%ld", (unsigned long)[body length]];
     [request setValue:postLength forHTTPHeaderField:@"Content-Length"];
     
-	NSURLResponse *response = nil;
-	NSError *error = nil;
-	[NSURLConnection sendSynchronousRequest:request
-                          returningResponse:&response
-                                      error:&error];
-	if (error != nil)
+	NSData *data = nil;
+	NSHTTPURLResponse *httpResponse = nil;
+	if (!sendRequest(request, &data, &httpResponse))
 		return 500;
 
-	NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response; 
 	return [httpResponse statusCode];
 }
 
