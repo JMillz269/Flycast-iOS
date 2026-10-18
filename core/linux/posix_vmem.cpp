@@ -277,6 +277,12 @@ struct TXMPoolInfo {
 TXMPoolInfo g_txm_pool;  // Now in virtmem namespace
 
 #ifdef TARGET_IPHONE
+bool txm_jit_active() {
+    return g_txm_pool.uses_txm;
+}
+#endif
+
+#ifdef TARGET_IPHONE
 static bool init_txm_jit_pool()
 {
     if (g_txm_pool.initialized)
