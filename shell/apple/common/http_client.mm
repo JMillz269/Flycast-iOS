@@ -29,6 +29,7 @@ int get(const std::string& url, std::vector<u8>& content, std::string& contentTy
                                              encoding:[NSString defaultCStringEncoding]];
 	NSMutableURLRequest *urlRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:nsurl]];
 	[urlRequest setValue:userAgent forHTTPHeaderField:@"User-Agent"];
+	[urlRequest setTimeoutInterval:10.0];
 	NSURLResponse *response = nil;
 	NSError *error = nil;
 	NSData *data = [NSURLConnection sendSynchronousRequest:urlRequest
@@ -59,6 +60,7 @@ int post(const std::string& url, const char *payload, const char *contentType, s
 	[request setHTTPMethod:@"POST"];
 	[request setCachePolicy:NSURLRequestReloadIgnoringLocalCacheData];
 	[request setHTTPShouldHandleCookies:NO];
+	[request setTimeoutInterval:10.0];
 	
 	size_t payloadSize = strlen(payload);
 	[request setHTTPBody:[NSData dataWithBytes:payload length:payloadSize]];
