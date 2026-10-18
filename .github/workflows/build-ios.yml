@@ -1,7 +1,6 @@
 name: iOS Release IPA
 
 on:
-  push:
   pull_request:
   workflow_dispatch:
 
