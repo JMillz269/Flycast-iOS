@@ -303,8 +303,29 @@ static bool init_txm_jit_pool()
     
     NOTICE_LOG(VMEM, "Initializing TXM JIT pool (%zu MB)...", size / (1024 * 1024));
     
-    u8* rx_ptr = static_cast<u8*>(mmap(nullptr, size, PROT_READ | PROT_EXEC,
+    // The debugger's "prepare region" step only handles addresses below 2^36
+    // (9 hex digits), so ask for the RX region low and verify where it landed.
+    constexpr uint64_t JIT_ADDR_LIMIT = 0x1000000000ULL;
+    u8* rx_ptr = static_cast<u8*>(MAP_FAILED);
+    for (uint64_t hint = 0x400000000ULL; hint + size <= JIT_ADDR_LIMIT; hint += 0x40000000ULL)
+    {
+        void* p = mmap(reinterpret_cast<void*>(hint), size, PROT_READ | PROT_EXEC,
+                       MAP_ANON | MAP_PRIVATE, -1, 0);
+        if (p == MAP_FAILED)
+            break;
+        if ((uint64_t)p + size <= JIT_ADDR_LIMIT)
+        {
+            rx_ptr = static_cast<u8*>(p);
+            break;
+        }
+        munmap(p, size);    // kernel ignored the hint, try the next one
+    }
+    if (rx_ptr == MAP_FAILED)
+    {
+        WARN_LOG(VMEM, "TXM: could not place RX region below 2^36, using any address");
+        rx_ptr = static_cast<u8*>(mmap(nullptr, size, PROT_READ | PROT_EXEC,
                                        MAP_ANON | MAP_PRIVATE, -1, 0));
+    }
     if (rx_ptr == MAP_FAILED)
     {
         ERROR_LOG(VMEM, "TXM: Failed to allocate RX region: %s", strerror(errno));
