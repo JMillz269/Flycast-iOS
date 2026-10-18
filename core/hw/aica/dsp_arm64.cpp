@@ -53,15 +53,17 @@ alignas(4096) static u8 DynCode[CodeSize] __attribute__((section("__TEXT, .text"
 static u8 *pCodeBuffer;
 static ptrdiff_t rx_offset;
 
-#ifdef TARGET_IPHONE
 #include "stdclass.h"
 
+#ifdef TARGET_IPHONE
 static void JITWriteProtect(bool enable)
 {
+    if (virtmem::txm_jit_active())
+        return;
     if (enable)
-    	virtmem::region_set_exec(pCodeBuffer, CodeSize);
+        virtmem::region_set_exec(pCodeBuffer, CodeSize);
     else
-    	virtmem::region_unlock(pCodeBuffer, CodeSize);
+        virtmem::region_unlock(pCodeBuffer, CodeSize);
 }
 #endif
 
