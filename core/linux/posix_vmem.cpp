@@ -295,12 +295,7 @@ static bool init_txm_jit_pool()
         g_txm_pool.uses_txm = false;
         return false;
     }
-    
-    NOTICE_LOG(VMEM, "TXM device WITH debugger - initializing TXM pool");
-    
-    g_txm_pool.uses_txm = true;
-    const size_t size = TXM_EXECUTABLE_REGION_SIZE;
-    
+   
     NOTICE_LOG(VMEM, "Initializing TXM JIT pool (%zu MB)...", size / (1024 * 1024));
     
     g_txm_pool.uses_txm = true;
