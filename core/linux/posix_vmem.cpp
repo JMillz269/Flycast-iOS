@@ -295,9 +295,7 @@ static bool init_txm_jit_pool()
         g_txm_pool.uses_txm = false;
         return false;
     }
-   
-    NOTICE_LOG(VMEM, "Initializing TXM JIT pool (%zu MB)...", size / (1024 * 1024));
-    
+       
     g_txm_pool.uses_txm = true;
     const size_t size = TXM_EXECUTABLE_REGION_SIZE;
 
@@ -314,8 +312,6 @@ static bool init_txm_jit_pool()
     if ((uint64_t)rx_ptr + size > 0x1000000000ULL)
         WARN_LOG(VMEM, "TXM: RX region %p is above 2^36, debugger can't prepare it", rx_ptr);
 
-    NOTICE_LOG(VMEM, "Registering with TXM via brk #0xf00d (universal.js)...");
-    
     NOTICE_LOG(VMEM, "Registering with TXM via brk #0xf00d (universal.js)...");
 
     if (has_txm) {
