@@ -287,21 +287,21 @@ static bool init_txm_jit_pool()
     bool has_txm = ios_device_has_txm();
     bool is_debugged = ios_process_is_debugged();
     
-    INFO_LOG(VMEM, "=== iOS 26 JIT Detection ===");
-    INFO_LOG(VMEM, "Device has TXM: %s", has_txm ? "YES" : "NO");
-    INFO_LOG(VMEM, "Process debugged: %s", is_debugged ? "YES" : "NO");
+    NOTICE_LOG(VMEM, "=== iOS 26 JIT Detection ===");
+    NOTICE_LOG(VMEM, "Device has TXM: %s", has_txm ? "YES" : "NO");
+    NOTICE_LOG(VMEM, "Process debugged: %s", is_debugged ? "YES" : "NO");
 
     if (!is_debugged) {
         g_txm_pool.uses_txm = false;
         return false;
     }
     
-    INFO_LOG(VMEM, "TXM device WITH debugger - initializing TXM pool");
+    NOTICE_LOG(VMEM, "TXM device WITH debugger - initializing TXM pool");
     
     g_txm_pool.uses_txm = true;
     const size_t size = TXM_EXECUTABLE_REGION_SIZE;
     
-    INFO_LOG(VMEM, "Initializing TXM JIT pool (%zu MB)...", size / (1024 * 1024));
+    NOTICE_LOG(VMEM, "Initializing TXM JIT pool (%zu MB)...", size / (1024 * 1024));
     
     u8* rx_ptr = static_cast<u8*>(mmap(nullptr, size, PROT_READ | PROT_EXEC,
                                        MAP_ANON | MAP_PRIVATE, -1, 0));
@@ -312,7 +312,7 @@ static bool init_txm_jit_pool()
         return false;
     }
     
-    INFO_LOG(VMEM, "Registering with TXM via brk #0xf00d (universal.js)...");
+    NOTICE_LOG(VMEM, "Registering with TXM via brk #0xf00d (universal.js)...");
 
     if (has_txm) {
         // universal.js protocol: x16 = command (1 = prepare JIT region),
@@ -382,10 +382,10 @@ static bool init_txm_jit_pool()
     g_txm_pool.rw_region = rw_ptr;
     g_txm_pool.rw_rx_diff = rw_ptr - rx_ptr;
     
-    INFO_LOG(VMEM, "TXM JIT pool initialized successfully");
-    INFO_LOG(VMEM, "  RX region: %p", rx_ptr);
-    INFO_LOG(VMEM, "  RW region: %p", rw_ptr);
-    INFO_LOG(VMEM, "  RW->RX offset: %td bytes", g_txm_pool.rw_rx_diff);
+    NOTICE_LOG(VMEM, "TXM JIT pool initialized successfully");
+    NOTICE_LOG(VMEM, "  RX region: %p", rx_ptr);
+    NOTICE_LOG(VMEM, "  RW region: %p", rw_ptr);
+    NOTICE_LOG(VMEM, "  RW->RX offset: %td bytes", g_txm_pool.rw_rx_diff);
     
     return true;
 }
