@@ -53,6 +53,11 @@ struct PostField
 int post(const std::string& url, const std::vector<PostField>& fields);
 int post(const std::string& url, const char *payload, const char *contentType, std::vector<u8>& reply);
 
+#ifdef __APPLE__
+// Cancels in-flight requests so a thread blocked on the network can exit promptly
+void cancelPending();
+#endif
+
 static inline bool success(int status) {
 	return status >= 200 && status < 300;
 }
