@@ -314,7 +314,7 @@ static bool init_txm_jit_pool()
     
     INFO_LOG(VMEM, "Registering with TXM via brk #0xf00d (universal.js)...");
 
-    if (true) {
+    if (has_txm) {
         // universal.js protocol: x16 = command (1 = prepare JIT region),
         // x0 = region address, x1 = length
         __asm__ volatile (
@@ -327,7 +327,7 @@ static bool init_txm_jit_pool()
         );
     }
 
-    if (true) {
+    if (has_txm) {
         __asm__ volatile ("mov x16, #0\n" "brk #0xf00d" ::: "x16", "memory");
     }
 
