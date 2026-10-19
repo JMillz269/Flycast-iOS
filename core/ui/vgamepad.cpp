@@ -405,7 +405,7 @@ void draw()
 			Controls[Left].pos.x = 1e-12f;
 	}
 		
-	ImDrawList *drawList = ImGui::GetBackgroundDrawList();
+	ImDrawList *drawList = ImGui::GetForegroundDrawList();
 	drawButton(drawList, Controls[Left], kcode[0] & buttonMap[Left]);
 	drawButton(drawList, Controls[Up], kcode[0] & buttonMap[Up]);
 	drawButton(drawList, Controls[Right], kcode[0] & buttonMap[Right]);
