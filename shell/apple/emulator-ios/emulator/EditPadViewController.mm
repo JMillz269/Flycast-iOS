@@ -51,6 +51,9 @@
 		[alert addAction:defaultAction];
 	}
 	[parentView addSubview:self.view];
+	self.view.frame = parentView.bounds;        // overlay must cover exactly the screen
+	self.view.userInteractionEnabled = YES;
+	self.view.multipleTouchEnabled = YES;
 }
 
 - (void)hideController
