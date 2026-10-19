@@ -124,6 +124,9 @@ static CGPoint translateCoords(const CGPoint& pos, const CGSize& size)
 		CGPoint point = [touch locationInView:self.view];
 		point = translateCoords(point, self.view.bounds.size);
 		vgamepad::ControlId control = vgamepad::hitTest(point.x, point.y);
+		NOTICE_LOG(COMMON, "PadView touch: view pt %.0f,%.0f -> 480p pt %.0f,%.0f -> %s (%d)",
+					 [touch locationInView:self.view].x, [touch locationInView:self.view].y,
+					 point.x, point.y, control == vgamepad::None ? "MISS" : "hit", (int)control);
 		if (joyTouch == nil && (control == vgamepad::AnalogArea || control == vgamepad::AnalogStick))
 		{
 			[self resetAnalog];
