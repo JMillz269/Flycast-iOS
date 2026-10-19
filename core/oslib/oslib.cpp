@@ -42,6 +42,17 @@
 #include "profiler/fc_profiler.h"
 #include "input/gamepad_device.h"
 
+// On iOS, keep VMU saves in Documents/VMU/ instead of the Documents root
+static std::string getWritableVmuPath(const std::string& vmuName)
+{
+#ifdef TARGET_IPHONE
+	make_directory(get_writable_data_path("VMU"));	// no-op if it already exists
+	return get_writable_data_path("VMU/" + vmuName);
+#else
+	return get_writable_data_path(vmuName);
+#endif
+}
+
 namespace hostfs
 {
 
@@ -57,7 +68,7 @@ std::string getVmuPath(const std::string& port, bool save)
 				if (INVALID_CHARS.find(c) != INVALID_CHARS.npos)
 					c = '_';
 			vmuName += "_vmu_save_A1.bin";
-			std::string wpath = get_writable_data_path(vmuName);
+			std::string wpath = getWritableVmuPath(vmuName);
             if (save || file_exists(wpath))
             	return wpath;
             std::string rpath = get_readonly_data_path(vmuName);
@@ -77,7 +88,7 @@ std::string getVmuPath(const std::string& port, bool save)
 	}
 
 	std::string vmuName = "vmu_save_" + port + ".bin";
-	std::string wpath = get_writable_data_path(vmuName);
+	std::string wpath = getWritableVmuPath(vmuName);
 	if (save || file_exists(wpath))
 		return wpath;
 	std::string rpath = get_readonly_data_path(vmuName);
