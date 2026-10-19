@@ -48,7 +48,7 @@
 	[self touchLocation:touch];
 	mouse->setButton(Mouse::LEFT_BUTTON, true);
 	[super touchesBegan:touches withEvent:event];
-	NOTICE_LOG(COMMON, "EmulatorView touch reached the game view");
+	DEBUG_LOG(COMMON, "EmulatorView touch reached the game view");
 
 }
 
