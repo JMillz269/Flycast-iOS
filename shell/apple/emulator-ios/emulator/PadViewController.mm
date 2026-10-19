@@ -61,9 +61,17 @@
 		}];
 		[alert addAction:defaultAction];
 	}
-	[parentView addSubview:self.view];
-	[self startHideTimer];
-}
+		[parentView addSubview:self.view];
+		self.view.frame = parentView.bounds;        // defensive: make sure the overlay covers the screen
+		self.view.userInteractionEnabled = YES;
+		self.view.multipleTouchEnabled = YES;
+		NOTICE_LOG(COMMON, "PadView shown: parent %.0fx%.0f, pad %.0fx%.0f, in window: %s, controller connected: %d",
+			   parentView.bounds.size.width, parentView.bounds.size.height,
+			   self.view.bounds.size.width, self.view.bounds.size.height,
+			   self.view.window != nil ? "yes" : "NO", (int)IOSGamepad::controllerConnected());
+
+		[self startHideTimer];
+	}
 
 - (void)hideController
 {
