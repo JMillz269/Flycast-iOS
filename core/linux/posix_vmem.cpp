@@ -258,7 +258,7 @@ extern "C" {
 #include "lwmem.h"
 }
 
-constexpr size_t TXM_EXECUTABLE_REGION_SIZE = 64 * 1024 * 1024;   // Flycast needs ~15 MB and this sets 64 MB. Should get better chances of hitting a low address on TXM pool
+constexpr size_t TXM_EXECUTABLE_REGION_SIZE = 256 * 1024 * 1024;   // Flycast needs ~15 MB and this sets 64 MB. Should get better chances of hitting a low address on TXM pool
 
 static bool init_txm_jit_pool();  // Forward declaration
 #endif
