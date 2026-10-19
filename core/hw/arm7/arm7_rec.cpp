@@ -685,7 +685,7 @@ void init()
 
 void term()
 {
-#ifdef FEAT_NO_RWX_PAGES
+#if defined(FEAT_NO_RWX_PAGES) || defined(TARGET_IPHONE)
 	if (ICache != nullptr)
 		virtmem::release_jit_block(ARM7_TCB, ICache, ICacheSize);
 #else

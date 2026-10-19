@@ -22,6 +22,7 @@
 #include "types.h"
 #include "ui/gui.h"
 #include "ios_gamepad.h"
+#include "log/Log.h"
 
 @implementation EmulatorView {
 	std::shared_ptr<TouchMouse> mouse;
@@ -47,6 +48,8 @@
 	[self touchLocation:touch];
 	mouse->setButton(Mouse::LEFT_BUTTON, true);
 	[super touchesBegan:touches withEvent:event];
+	DEBUG_LOG(COMMON, "EmulatorView touch reached the game view");
+
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event;

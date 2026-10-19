@@ -24,6 +24,8 @@
 #include "ios_gamepad.h"
 #include "cfg/cfg.h"
 #include "ui/vgamepad.h"
+#include "log/Log.h"
+
 
 @interface PadViewController () {
 	UITouch *joyTouch;
@@ -59,9 +61,17 @@
 		}];
 		[alert addAction:defaultAction];
 	}
-	[parentView addSubview:self.view];
-	[self startHideTimer];
-}
+		[parentView addSubview:self.view];
+		self.view.frame = parentView.bounds;        // defensive: make sure the overlay covers the screen
+		self.view.userInteractionEnabled = YES;
+		self.view.multipleTouchEnabled = YES;
+		NOTICE_LOG(COMMON, "PadView shown: parent %.0fx%.0f, pad %.0fx%.0f, in window: %s, controller connected: %d",
+			   parentView.bounds.size.width, parentView.bounds.size.height,
+			   self.view.bounds.size.width, self.view.bounds.size.height,
+			   self.view.window != nil ? "yes" : "NO", (int)IOSGamepad::controllerConnected());
+
+		[self startHideTimer];
+	}
 
 - (void)hideController
 {
@@ -114,6 +124,9 @@ static CGPoint translateCoords(const CGPoint& pos, const CGSize& size)
 		CGPoint point = [touch locationInView:self.view];
 		point = translateCoords(point, self.view.bounds.size);
 		vgamepad::ControlId control = vgamepad::hitTest(point.x, point.y);
+		DEBUG_LOG(COMMON, "PadView touch: view pt %.0f,%.0f -> 480p pt %.0f,%.0f -> %s (%d)",
+					 [touch locationInView:self.view].x, [touch locationInView:self.view].y,
+					 point.x, point.y, control == vgamepad::None ? "MISS" : "hit", (int)control);
 		if (joyTouch == nil && (control == vgamepad::AnalogArea || control == vgamepad::AnalogStick))
 		{
 			[self resetAnalog];

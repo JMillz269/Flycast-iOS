@@ -53,15 +53,17 @@ alignas(4096) static u8 DynCode[CodeSize] __attribute__((section("__TEXT, .text"
 static u8 *pCodeBuffer;
 static ptrdiff_t rx_offset;
 
-#ifdef TARGET_IPHONE
 #include "stdclass.h"
 
+#ifdef TARGET_IPHONE
 static void JITWriteProtect(bool enable)
 {
+    if (virtmem::txm_jit_active())
+        return;
     if (enable)
-    	virtmem::region_set_exec(pCodeBuffer, CodeSize);
+        virtmem::region_set_exec(pCodeBuffer, CodeSize);
     else
-    	virtmem::region_unlock(pCodeBuffer, CodeSize);
+        virtmem::region_unlock(pCodeBuffer, CodeSize);
 }
 #endif
 
@@ -455,24 +457,26 @@ void recompile()
 
 void recInit()
 {
-#ifdef FEAT_NO_RWX_PAGES
+#if defined(FEAT_NO_RWX_PAGES) || defined(TARGET_IPHONE)
 	bool rc = virtmem::prepare_jit_block(DynCode, CodeSize, (void**)&pCodeBuffer, &rx_offset);
 #else
 	bool rc = virtmem::prepare_jit_block(DynCode, CodeSize, (void**)&pCodeBuffer);
 #endif
 	verify(rc);
-#if defined(TARGET_IPHONE) || defined(TARGET_ARM_MAC)
+#if defined(TARGET_IPHONE)
+	// pCodeBuffer is the RW alias; the DSP runs through the RX mapping
+	DynCode = pCodeBuffer + rx_offset;
+#elif defined(TARGET_ARM_MAC)
 	DynCode = pCodeBuffer;
 #endif
 }
-
 
 void recTerm()
 {
 #if defined(TARGET_IPHONE) || defined(TARGET_ARM_MAC)
 	DynCode = nullptr;
 #endif
-#ifdef FEAT_NO_RWX_PAGES
+#if defined(FEAT_NO_RWX_PAGES) || defined(TARGET_IPHONE)
 	if (pCodeBuffer != nullptr)
 		virtmem::release_jit_block(DynCode, pCodeBuffer, CodeSize);
 #else

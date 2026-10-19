@@ -40,4 +40,7 @@ bool region_lock(void *start, std::size_t len);
 bool region_unlock(void *start, std::size_t len);
 bool region_set_exec(void *start, std::size_t len);
 
+// True when JIT code lives in the iOS TXM dual-mapped pool (nothing to mprotect)
+bool txm_jit_active();
+
 } // namespace vmem
