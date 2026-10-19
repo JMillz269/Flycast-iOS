@@ -24,6 +24,8 @@
 #include "ios_gamepad.h"
 #include "cfg/cfg.h"
 #include "ui/vgamepad.h"
+#include "log/Log.h"
+
 
 @interface PadViewController () {
 	UITouch *joyTouch;
